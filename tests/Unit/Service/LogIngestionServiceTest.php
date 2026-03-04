@@ -7,7 +7,8 @@ namespace App\Tests\Unit\Service;
 use App\DTO\LogIngestionResult;
 use App\Exception\LogIngestionException;
 use App\Exception\ValidationException;
-use App\Message\ProcessLogMessage;
+use App\Message\ProcessLogBatchMessage;
+use App\Factory\LogEntryFactory;
 use App\Service\LogIngestionService;
 use App\Service\LogValidator;
 use PHPUnit\Framework\Attributes\Test;
@@ -28,7 +29,7 @@ final class LogIngestionServiceTest extends TestCase
             ->enableAttributeMapping()
             ->getValidator();
 
-        $validator = new LogValidator($symfonyValidator);
+        $validator = new LogValidator($symfonyValidator, new LogEntryFactory());
         $this->bus = $this->createMock(MessageBusInterface::class);
         $this->service = new LogIngestionService($validator, $this->bus, new NullLogger());
     }
@@ -59,7 +60,7 @@ final class LogIngestionServiceTest extends TestCase
     }
 
     #[Test]
-    public function it_dispatches_correct_number_of_messages(): void
+    public function it_dispatches_single_batch_message(): void
     {
         $dispatched = [];
         $this->bus
@@ -76,12 +77,13 @@ final class LogIngestionServiceTest extends TestCase
         ]);
 
         self::assertSame(3, $result->logsCount);
-        self::assertCount(3, $dispatched);
-        self::assertInstanceOf(ProcessLogMessage::class, $dispatched[0]);
+        self::assertCount(1, $dispatched);
+        self::assertInstanceOf(ProcessLogBatchMessage::class, $dispatched[0]);
+        self::assertCount(3, $dispatched[0]->logs);
     }
 
     #[Test]
-    public function it_sets_correct_level_and_batch_id_on_messages(): void
+    public function it_sets_correct_level_and_batch_id_on_batch_message(): void
     {
         $dispatched = [];
         $this->bus
@@ -93,15 +95,15 @@ final class LogIngestionServiceTest extends TestCase
 
         $result = $this->service->ingest([self::validEntry(['level' => 'error'])]);
 
-        /** @var ProcessLogMessage $msg */
+        /** @var ProcessLogBatchMessage $msg */
         $msg = $dispatched[0];
-        self::assertSame('error', $msg->level);
+        self::assertSame('error', $msg->logs[0]['level']);
         self::assertSame($result->batchId, $msg->batchId);
         self::assertNotEmpty($msg->publishedAt);
     }
 
     #[Test]
-    public function it_passes_trace_id_to_message(): void
+    public function it_passes_trace_id_to_batch_message(): void
     {
         $dispatched = [];
         $this->bus
@@ -113,9 +115,9 @@ final class LogIngestionServiceTest extends TestCase
 
         $this->service->ingest([self::validEntry(['trace_id' => 'trace-abc-123'])]);
 
-        /** @var ProcessLogMessage $msg */
+        /** @var ProcessLogBatchMessage $msg */
         $msg = $dispatched[0];
-        self::assertSame('trace-abc-123', $msg->traceId);
+        self::assertSame('trace-abc-123', $msg->logs[0]['trace_id']);
     }
 
     #[Test]
@@ -131,9 +133,9 @@ final class LogIngestionServiceTest extends TestCase
 
         $this->service->ingest([self::validEntry()]);
 
-        /** @var ProcessLogMessage $msg */
+        /** @var ProcessLogBatchMessage $msg */
         $msg = $dispatched[0];
-        self::assertNull($msg->traceId);
+        self::assertNull($msg->logs[0]['trace_id']);
     }
 
     #[Test]

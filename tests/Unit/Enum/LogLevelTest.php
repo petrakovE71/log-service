@@ -20,27 +20,6 @@ final class LogLevelTest extends TestCase
     }
 
     #[Test]
-    #[DataProvider('levelPriorityProvider')]
-    public function it_maps_level_to_correct_priority(LogLevel $level, int $expectedPriority): void
-    {
-        self::assertSame($expectedPriority, $level->priority());
-    }
-
-    public static function levelPriorityProvider(): array
-    {
-        return [
-            'debug'     => [LogLevel::Debug, 1],
-            'info'      => [LogLevel::Info, 3],
-            'notice'    => [LogLevel::Notice, 3],
-            'warning'   => [LogLevel::Warning, 5],
-            'error'     => [LogLevel::Error, 7],
-            'critical'  => [LogLevel::Critical, 9],
-            'alert'     => [LogLevel::Alert, 9],
-            'emergency' => [LogLevel::Emergency, 9],
-        ];
-    }
-
-    #[Test]
     #[DataProvider('validLevelStringProvider')]
     public function it_creates_from_valid_string(string $value, LogLevel $expected): void
     {

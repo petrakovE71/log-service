@@ -20,13 +20,12 @@ framework:
                             durable: true
                             binding_keys: [logs.ingest]
                             arguments:
-                                x-max-priority: 10
                                 x-queue-type: classic
 
             failed: 'in-memory://'
 
         routing:
-            'App\Message\ProcessLogMessage': async
+            'App\Message\ProcessLogBatchMessage': async
 
 when@test:
     framework:

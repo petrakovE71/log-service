@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\DTO\LogEntry;
-use App\Enum\LogLevel;
+use App\Exception\InvalidLogEntryException;
 use App\Exception\LogIngestionException;
 use App\Exception\ValidationException;
+use App\Factory\LogEntryFactory;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 final class LogValidator
@@ -16,6 +17,7 @@ final class LogValidator
 
     public function __construct(
         private readonly ValidatorInterface $validator,
+        private readonly LogEntryFactory $factory,
     ) {}
 
     /**
@@ -24,12 +26,8 @@ final class LogValidator
      * @throws LogIngestionException
      * @throws ValidationException
      */
-    public function validate(mixed $payload): array
+    public function validate(array $payload): array
     {
-        if (!is_array($payload)) {
-            throw new LogIngestionException('Request body must be a JSON array.');
-        }
-
         if (count($payload) === 0) {
             throw new LogIngestionException('Batch must contain at least one log entry.');
         }
@@ -52,29 +50,15 @@ final class LogValidator
                 continue;
             }
 
-            $level = LogLevel::tryFrom($item['level'] ?? '');
-
-            if ($level === null) {
+            try {
+                $entry = $this->factory->create($item);
+            } catch (InvalidLogEntryException $e) {
                 $errors[] = [
                     'index' => $index,
-                    'violations' => [
-                        [
-                            'field' => 'level',
-                            'message' => 'Field "level" must be a valid PSR-3 log level.',
-                        ],
-                    ],
+                    'violations' => [['field' => $e->field, 'message' => $e->getMessage()]],
                 ];
                 continue;
             }
-
-            $entry = new LogEntry(
-                timestamp: $item['timestamp'] ?? '',
-                level: $level,
-                service: $item['service'] ?? '',
-                message: $item['message'] ?? '',
-                context: $item['context'] ?? [],
-                traceId: isset($item['trace_id']) && is_string($item['trace_id']) ? $item['trace_id'] : null,
-            );
 
             $violations = $this->validator->validate($entry);
 

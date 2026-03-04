@@ -147,7 +147,7 @@ http://localhost:15672
 
 - **App**: PHP 8.4-FPM + Nginx, порт 8080
 - **RabbitMQ**: 3.12 с Management UI, порты 5672 (AMQP) + 15672 (Management)
-- **Очередь**: `logs.ingest` (direct exchange, durable, x-max-priority: 10)
+- **Очередь**: `logs.ingest` (direct exchange, durable)
 
 ## Окружения
 
@@ -166,8 +166,8 @@ log-service/
 │   ├── Enum/LogLevel.php
 │   ├── EventListener/ApiExceptionListener.php
 │   ├── Exception/LogIngestionException.php, ValidationException.php
-│   ├── Message/ProcessLogMessage.php
-│   ├── MessageHandler/ProcessLogMessageHandler.php
+│   ├── Message/ProcessLogBatchMessage.php
+│   ├── MessageHandler/ProcessLogBatchMessageHandler.php
 │   └── Service/LogValidator.php, LogIngestionService.php
 ├── tests/
 │   ├── Unit/Service/LogValidatorTest.php, LogIngestionServiceTest.php

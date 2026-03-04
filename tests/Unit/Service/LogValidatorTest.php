@@ -8,6 +8,7 @@ use App\DTO\LogEntry;
 use App\Enum\LogLevel;
 use App\Exception\LogIngestionException;
 use App\Exception\ValidationException;
+use App\Factory\LogEntryFactory;
 use App\Service\LogValidator;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -24,7 +25,7 @@ final class LogValidatorTest extends TestCase
             ->enableAttributeMapping()
             ->getValidator();
 
-        $this->validator = new LogValidator($symfonyValidator);
+        $this->validator = new LogValidator($symfonyValidator, new LogEntryFactory());
     }
 
     private static function validEntry(array $overrides = []): array
@@ -112,15 +113,6 @@ final class LogValidatorTest extends TestCase
     }
 
     // --- Batch-level validation ---
-
-    #[Test]
-    public function it_rejects_non_array_payload(): void
-    {
-        $this->expectException(LogIngestionException::class);
-        $this->expectExceptionMessage('Request body must be a JSON array.');
-
-        $this->validator->validate('not an array');
-    }
 
     #[Test]
     public function it_rejects_empty_batch(): void

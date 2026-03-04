@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Integration\Controller;
 
-use App\Message\ProcessLogMessage;
+use App\Message\ProcessLogBatchMessage;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
@@ -91,7 +91,7 @@ final class LogIngestionControllerTest extends WebTestCase
     // --- Message dispatch verification ---
 
     #[Test]
-    public function each_log_is_dispatched_as_separate_message(): void
+    public function batch_is_dispatched_as_single_message(): void
     {
         $client = static::createClient();
         $client->request(
@@ -106,12 +106,16 @@ final class LogIngestionControllerTest extends WebTestCase
         /** @var InMemoryTransport $transport */
         $transport = static::getContainer()->get('messenger.transport.async');
 
-        self::assertCount(3, $transport->getSent());
-        self::assertInstanceOf(ProcessLogMessage::class, $transport->getSent()[0]->getMessage());
+        self::assertCount(1, $transport->getSent());
+
+        /** @var ProcessLogBatchMessage $msg */
+        $msg = $transport->getSent()[0]->getMessage();
+        self::assertInstanceOf(ProcessLogBatchMessage::class, $msg);
+        self::assertCount(3, $msg->logs);
     }
 
     #[Test]
-    public function dispatched_messages_contain_batch_metadata(): void
+    public function dispatched_message_contains_batch_metadata(): void
     {
         $client = static::createClient();
         $client->request(
@@ -127,14 +131,12 @@ final class LogIngestionControllerTest extends WebTestCase
 
         /** @var InMemoryTransport $transport */
         $transport = static::getContainer()->get('messenger.transport.async');
-        $messages = $transport->getSent();
 
-        foreach ($messages as $envelope) {
-            /** @var ProcessLogMessage $msg */
-            $msg = $envelope->getMessage();
-            self::assertSame($body['batch_id'], $msg->batchId);
-            self::assertNotEmpty($msg->publishedAt);
-        }
+        /** @var ProcessLogBatchMessage $msg */
+        $msg = $transport->getSent()[0]->getMessage();
+        self::assertSame($body['batch_id'], $msg->batchId);
+        self::assertNotEmpty($msg->publishedAt);
+        self::assertCount(2, $msg->logs);
     }
 
     #[Test]
@@ -159,13 +161,14 @@ final class LogIngestionControllerTest extends WebTestCase
 
         /** @var InMemoryTransport $transport */
         $transport = static::getContainer()->get('messenger.transport.async');
-        /** @var ProcessLogMessage $msg */
+        /** @var ProcessLogBatchMessage $msg */
         $msg = $transport->getSent()[0]->getMessage();
+        $log = $msg->logs[0];
 
-        self::assertSame('error', $msg->level);
-        self::assertSame('auth-service', $msg->service);
-        self::assertSame('Auth failed', $msg->message);
-        self::assertSame(['user_id' => 42], $msg->context);
+        self::assertSame('error', $log['level']);
+        self::assertSame('auth-service', $log['service']);
+        self::assertSame('Auth failed', $log['message']);
+        self::assertSame(['user_id' => 42], $log['context']);
     }
 
     #[Test]
@@ -185,10 +188,10 @@ final class LogIngestionControllerTest extends WebTestCase
 
         /** @var InMemoryTransport $transport */
         $transport = static::getContainer()->get('messenger.transport.async');
-        /** @var ProcessLogMessage $msg */
+        /** @var ProcessLogBatchMessage $msg */
         $msg = $transport->getSent()[0]->getMessage();
 
-        self::assertSame('trace-xyz-789', $msg->traceId);
+        self::assertSame('trace-xyz-789', $msg->logs[0]['trace_id']);
     }
 
     // --- 400 Bad Request ---

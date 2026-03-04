@@ -32,7 +32,6 @@
       "durable": true,
       "auto_delete": false,
       "arguments": {
-        "x-max-priority": 10,
         "x-queue-type": "classic"
       }
     }
