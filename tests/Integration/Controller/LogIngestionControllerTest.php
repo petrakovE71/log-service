@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Tests\Integration\Controller;
 
+use App\DTO\LogEntry;
+use App\Enum\LogLevel;
 use App\Message\ProcessLogBatchMessage;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -165,10 +167,11 @@ final class LogIngestionControllerTest extends WebTestCase
         $msg = $transport->getSent()[0]->getMessage();
         $log = $msg->logs[0];
 
-        self::assertSame('error', $log['level']);
-        self::assertSame('auth-service', $log['service']);
-        self::assertSame('Auth failed', $log['message']);
-        self::assertSame(['user_id' => 42], $log['context']);
+        self::assertInstanceOf(LogEntry::class, $log);
+        self::assertSame(LogLevel::Error, $log->level);
+        self::assertSame('auth-service', $log->service);
+        self::assertSame('Auth failed', $log->message);
+        self::assertSame(['user_id' => 42], $log->context);
     }
 
     #[Test]
@@ -191,7 +194,7 @@ final class LogIngestionControllerTest extends WebTestCase
         /** @var ProcessLogBatchMessage $msg */
         $msg = $transport->getSent()[0]->getMessage();
 
-        self::assertSame('trace-xyz-789', $msg->logs[0]['trace_id']);
+        self::assertSame('trace-xyz-789', $msg->logs[0]->traceId);
     }
 
     // --- 400 Bad Request ---

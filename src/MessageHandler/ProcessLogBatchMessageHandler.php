@@ -20,9 +20,9 @@ final class ProcessLogBatchMessageHandler
         foreach ($message->logs as $log) {
             $this->logger->info('Processing log entry', [
                 'batch_id' => $message->batchId,
-                'level' => $log['level'],
-                'service' => $log['service'],
-                'trace_id' => $log['trace_id'],
+                'level' => $log->level->value,
+                'service' => $log->service,
+                'trace_id' => $log->traceId,
             ]);
         }
     }

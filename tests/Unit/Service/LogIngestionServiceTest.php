@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Service;
 
+use App\DTO\LogEntry;
 use App\DTO\LogIngestionResult;
+use App\Enum\LogLevel;
 use App\Exception\LogIngestionException;
 use App\Exception\ValidationException;
-use App\Message\ProcessLogBatchMessage;
 use App\Factory\LogEntryFactory;
+use App\Message\ProcessLogBatchMessage;
 use App\Service\LogIngestionService;
 use App\Service\LogValidator;
 use PHPUnit\Framework\Attributes\Test;
@@ -97,7 +99,8 @@ final class LogIngestionServiceTest extends TestCase
 
         /** @var ProcessLogBatchMessage $msg */
         $msg = $dispatched[0];
-        self::assertSame('error', $msg->logs[0]['level']);
+        self::assertInstanceOf(LogEntry::class, $msg->logs[0]);
+        self::assertSame(LogLevel::Error, $msg->logs[0]->level);
         self::assertSame($result->batchId, $msg->batchId);
         self::assertNotEmpty($msg->publishedAt);
     }
@@ -117,7 +120,7 @@ final class LogIngestionServiceTest extends TestCase
 
         /** @var ProcessLogBatchMessage $msg */
         $msg = $dispatched[0];
-        self::assertSame('trace-abc-123', $msg->logs[0]['trace_id']);
+        self::assertSame('trace-abc-123', $msg->logs[0]->traceId);
     }
 
     #[Test]
@@ -135,7 +138,7 @@ final class LogIngestionServiceTest extends TestCase
 
         /** @var ProcessLogBatchMessage $msg */
         $msg = $dispatched[0];
-        self::assertNull($msg->logs[0]['trace_id']);
+        self::assertNull($msg->logs[0]->traceId);
     }
 
     #[Test]

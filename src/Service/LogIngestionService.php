@@ -28,17 +28,8 @@ final class LogIngestionService
         $batchId = 'batch_' . str_replace('-', '', Uuid::v4()->toRfc4122());
         $publishedAt = (new \DateTimeImmutable())->format(\DateTimeInterface::ATOM);
 
-        $logData = array_map(fn ($entry) => [
-            'timestamp' => $entry->timestamp,
-            'level' => $entry->level->value,
-            'service' => $entry->service,
-            'message' => $entry->message,
-            'context' => $entry->context,
-            'trace_id' => $entry->traceId,
-        ], $entries);
-
         try {
-            $this->bus->dispatch(new ProcessLogBatchMessage($logData, $batchId, $publishedAt));
+            $this->bus->dispatch(new ProcessLogBatchMessage($entries, $batchId, $publishedAt));
         } catch (\Throwable $e) {
             $this->logger->error('Failed to dispatch log batch', [
                 'batch_id' => $batchId,

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\MessageHandler;
 
+use App\DTO\LogEntry;
+use App\Enum\LogLevel;
 use App\Message\ProcessLogBatchMessage;
 use App\MessageHandler\ProcessLogBatchMessageHandler;
 use PHPUnit\Framework\Attributes\Test;
@@ -25,9 +27,9 @@ final class ProcessLogBatchMessageHandlerTest extends TestCase
     public function it_logs_each_entry_in_the_batch(): void
     {
         $logs = [
-            $this->logEntry(['message' => 'First']),
-            $this->logEntry(['message' => 'Second']),
-            $this->logEntry(['message' => 'Third']),
+            $this->logEntry(message: 'First'),
+            $this->logEntry(message: 'Second'),
+            $this->logEntry(message: 'Third'),
         ];
 
         $message = new ProcessLogBatchMessage($logs, 'batch_abc123', '2026-03-04T12:00:00+00:00');
@@ -43,11 +45,7 @@ final class ProcessLogBatchMessageHandlerTest extends TestCase
     public function it_passes_correct_context_to_logger(): void
     {
         $logs = [
-            $this->logEntry([
-                'level' => 'error',
-                'service' => 'payment-service',
-                'trace_id' => 'trace-xyz',
-            ]),
+            $this->logEntry(level: LogLevel::Error, service: 'payment-service', traceId: 'trace-xyz'),
         ];
 
         $message = new ProcessLogBatchMessage($logs, 'batch_def456', '2026-03-04T12:00:00+00:00');
@@ -69,7 +67,7 @@ final class ProcessLogBatchMessageHandlerTest extends TestCase
     public function it_logs_null_trace_id_when_absent(): void
     {
         $logs = [
-            $this->logEntry(['trace_id' => null]),
+            $this->logEntry(),
         ];
 
         $message = new ProcessLogBatchMessage($logs, 'batch_ghi789', '2026-03-04T12:00:00+00:00');
@@ -96,15 +94,14 @@ final class ProcessLogBatchMessageHandlerTest extends TestCase
         ($this->handler)($message);
     }
 
-    private function logEntry(array $overrides = []): array
-    {
-        return array_merge([
-            'timestamp' => '2026-03-04T12:00:00+00:00',
-            'level' => 'info',
-            'service' => 'test-service',
-            'message' => 'Test log message',
-            'context' => [],
-            'trace_id' => null,
-        ], $overrides);
+    private function logEntry(
+        string $timestamp = '2026-03-04T12:00:00+00:00',
+        LogLevel $level = LogLevel::Info,
+        string $service = 'test-service',
+        string $message = 'Test log message',
+        array $context = [],
+        ?string $traceId = null,
+    ): LogEntry {
+        return new LogEntry($timestamp, $level, $service, $message, $context, $traceId);
     }
 }
